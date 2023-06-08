@@ -12,11 +12,22 @@ public class MainCh extends SuperSmoothMover{
     private double[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
     private int dir, xx, turn, magic, targMP;
     private final double spd = 1.5;
-    private boolean moving;
+    private boolean moving, facingFront;
     private floatingPanel fp;
+    private GreenfootImage stand, standBack;
+    private GreenfootImage[] walk = new GreenfootImage[16], walkBack = new GreenfootImage[16];
     
     public void addedToWorld(World w){
-        this.setImage("TheHeart.png");
+        standBack = new GreenfootImage("FH/Stand/tile000.png");
+        standBack.scale(((MainWorld)getWorld()).getMap().getSz()[0], ((MainWorld)getWorld()).getMap().getSz()[1]);
+        stand = new GreenfootImage(standBack);
+        stand.mirrorHorizontally();
+        for(int i=0; i<=15; i++){
+            walkBack[i] = new GreenfootImage("FH/Walk/tile0"+(i<10?"0":"")+i+".png");
+            walkBack[i].scale(((MainWorld)getWorld()).getMap().getSz()[0], ((MainWorld)getWorld()).getMap().getSz()[1]);
+            walk[i] = new GreenfootImage(walkBack[i]);
+            walk[i].mirrorHorizontally();
+        }
         moving = false;
         dir = -1; xx = 0; turn = 0;
         int[] gridPos = ((MainWorld)getWorld()).getMap().getMaps(new int[]{getX(), getY()});
@@ -26,6 +37,8 @@ public class MainCh extends SuperSmoothMover{
         prevPos = new int[]{getX(), getY()};
         realPos = new int[]{getX(), getY()};
         targMP = 100;
+        facingFront = true;
+         setImage(stand);
     }
     
     public boolean isMoving(){
@@ -34,6 +47,21 @@ public class MainCh extends SuperSmoothMover{
     
     public void act(){
         move();
+        display();
+    }
+    
+    private void display(){
+        if(!moving){
+            if(facingFront)
+                setImage(stand);
+            else
+                setImage(standBack);
+        }else{
+            if(facingFront)
+                setImage(walk[xx%16]);
+            else
+                setImage(walkBack[xx%16]);
+        }
     }
     
     /**
@@ -48,16 +76,6 @@ public class MainCh extends SuperSmoothMover{
         Statics.setPlayerCoords(gridPos);
         if(Statics.getMP()!=targMP)
             Statics.setMP(Statics.getMP()<targMP ? Statics.getMP()+1:Statics.getMP()-1);
-        if(Greenfoot.isKeyDown("alt") && Statics.getMP()>0){
-            magic = Math.min(magic+2, 100);
-            if(magic==100){
-                ((MainWorld)getWorld()).damage();
-                Statics.setMP(Math.max(Statics.getMP()-1, 0));
-                targMP = Statics.getMP();
-            }
-        }else{
-            magic = Math.max(magic-2, 0);
-        }
         if(!moving){
             if(detect(gridPos)){
                 targMP = Math.min(100, Statics.getMP()+25);
@@ -65,6 +83,15 @@ public class MainCh extends SuperSmoothMover{
             }else if(Greenfoot.isKeyDown("z") && ((MainWorld)getWorld()).getMap().getNode(new int[]{gridPos[0], gridPos[1]}).getType()>2){
                 ((MainWorld)getWorld()).goBattle(((MainWorld)getWorld()).getMap().getNode(new int[]{gridPos[0], gridPos[1]}).getType()-3);
                 return;
+            }else if(Greenfoot.isKeyDown("alt") && Statics.getMP()>0){
+                magic = Math.min(magic+2, 100);
+                if(magic==100){
+                    ((MainWorld)getWorld()).damage();
+                    Statics.setMP(Math.max(Statics.getMP()-1, 0));
+                    targMP = Statics.getMP();
+                }
+            }else{
+                magic = Math.max(magic-2, 0);
             }
         }
         if(dir!=-1)
@@ -98,6 +125,7 @@ public class MainCh extends SuperSmoothMover{
             if(gridPos[0]-1>=0 && ((MainWorld)getWorld()).getMap().getNode(new int[]{gridPos[0]-1, gridPos[1]}).getType()!=2){
                 gridPos[0]--; dir = 0;
                 moving = true;
+                facingFront = false;
             }
         }else if(Greenfoot.isKeyDown("s")){
             if(gridPos[1]+1<11 && ((MainWorld)getWorld()).getMap().getNode(new int[]{gridPos[0], gridPos[1]+1}).getType()!=2){
@@ -108,6 +136,7 @@ public class MainCh extends SuperSmoothMover{
             if(gridPos[0]+1<20 && ((MainWorld)getWorld()).getMap().getNode(new int[]{gridPos[0]+1, gridPos[1]}).getType()!=2){
                 gridPos[0]++; dir = 1;
                 moving = true;
+                facingFront = true;
             }
         }
         realPos = ((MainWorld)getWorld()).getMap().getPixes(gridPos);
